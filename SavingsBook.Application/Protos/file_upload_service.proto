@@ -1,0 +1,50 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "FileUploadServiceGrpc";
+
+package file;
+
+service FileService {
+  //  rpc GetImageFile (GetFileRequest) returns (ImageFileResponse);
+  rpc UploadImageFile(ImageUploadRequest) returns (FileDetails);
+  rpc UploadManyImagesFiles(stream ImageUploadRequest) returns (UploadResponse);
+
+  //  rpc GetVideoFile (GetFileRequest) returns (stream VideoChunk);
+  rpc UploadVideoChunk(FileChunk) returns (FileDetails);
+  //  rpc UploadManyVideoFiles(stream VideoChunk) returns (stream FileDetails);
+}
+
+
+message GetFileRequest{
+  string file_name = 1;
+}
+
+message ImageFileResponse{
+  bytes content = 1;
+  string content_type = 2;
+  string file_name = 3;
+}
+
+message ImageUploadRequest{
+  bytes content = 1;
+  string file_name = 2;
+}
+
+message UploadResponse{
+  repeated FileDetails files = 1;
+}
+
+message FileDetails {
+  string name = 1;
+  string path = 2;
+  int64 size = 3;
+  string content_type = 4;
+}
+
+message FileChunk {
+  bytes content = 1;
+  string file_id = 2;
+  string file_name = 3;
+  int32 chunk_number = 5;
+  bool is_last_chunk = 6;
+}

@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="AutoMapper" Version="13.0.1" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.8" />
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="Google.Protobuf" Version="3.28.0" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.65.0" />
+        <PackageReference Include="Grpc.Tools" Version="2.66.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\SavingsBook.Application.Contracts\SavingsBook.Application.Contracts.csproj" />
+    </ItemGroup>
+    <ItemGroup>
+        <Protobuf Include="Protos\file_upload_service.proto" />
+    </ItemGroup>
+
+</Project>
