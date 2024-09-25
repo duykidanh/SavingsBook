@@ -38,10 +38,15 @@ namespace SavingsBook.HostApi.Controllers
             {
                 return StatusCode(400, new { message = "Email already in use" });
             }
-
+            // user = _userManager.Users.SingleOrDefault(x => x.IdCardNumber == input.IdCardNumber);
+            await Task.FromResult(user);
+            if (user != null)
+            {
+                return StatusCode(400, new { message = "ID Card Number already in use" });
+            }
             user = new ApplicationUser
             {
-                Email = input.Email, UserName = input.Username, ConcurrencyStamp = Guid.NewGuid().ToString()
+                Email = input.Email, UserName = input.Username, FullName = "", Address = "", IdCardNumber = "", ConcurrencyStamp = Guid.NewGuid().ToString()
             };
             var createUserResult = await _userManager.CreateAsync(user, input.Password);
             if (!createUserResult.Succeeded)
@@ -50,7 +55,7 @@ namespace SavingsBook.HostApi.Controllers
                     new { message = $"Create user failed, {createUserResult.Errors?.First()?.Description}" });
             }
 
-            var addUserToRoleResult = await _userManager.AddToRoleAsync(user, "Admin");
+            var addUserToRoleResult = await _userManager.AddToRoleAsync(user, "User");
             if (!createUserResult.Succeeded)
             {
                 await _userManager.DeleteAsync(user);

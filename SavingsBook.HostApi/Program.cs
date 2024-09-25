@@ -108,6 +108,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseCors(opts =>
+{
+    opts.AllowAnyOrigin()
+        .AllowAnyHeader()
+        .AllowAnyMethod();
+});
+
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
@@ -115,11 +122,11 @@ app.UseAuthorization();
 app.MapControllers();
 
 
-/*using (var scope = app.Services.CreateScope())
+using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var roleSeeder = services.GetRequiredService<RoleSeeder>();
     await roleSeeder.SeedRoles();
-}*/
+}
 
 app.Run();

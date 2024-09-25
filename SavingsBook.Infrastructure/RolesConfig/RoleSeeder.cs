@@ -14,7 +14,7 @@ public class RoleSeeder
 
     public async Task SeedRoles()
     {
-        var roles = new List<string> { "Admin", "User", "StoreOwner", "Shipper" };
+        var roles = new List<string> { "Admin", "User", "Staff" };
         foreach (var role in roles)
         {
             if (!(await _roleManager.RoleExistsAsync(role)))
