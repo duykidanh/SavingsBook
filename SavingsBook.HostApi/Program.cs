@@ -4,13 +4,19 @@ using AspNetCore.Identity.MongoDbCore.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
 using SavingsBook.Application.AutoMapperProfile;
+using SavingsBook.Application.Contracts.Authentication;
 using SavingsBook.Application.Contracts.FileUploadClient;
+using SavingsBook.Application.Contracts.SavingBook;
 using SavingsBook.Application.FileUploadClient;
 using SavingsBook.Application.Redis;
-using SavingsBook.Infrastructure.Authentication;
+using SavingsBook.HostApi.Middleware;
 using SavingsBook.Infrastructure.MongoDbConfig;
-using SavingsBook.Infrastructure.RolesConfig;
+using SavingsBook.Application.RolesConfig;
+using Microsoft.OpenApi.Models;
+using SavingsBook.HostApi.Utility;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,22 +53,27 @@ var mongoDbConfig = new MongoDbIdentityConfiguration()
     }
 };
 
+
+
+
 builder.Services.InitMongoCollections();
 
-#region Register custom services
+#region Register application services
 
-// builder.Services.AddScoped<IStoreService, StoreService>();
-// builder.Services.AddScoped<IStoreCategoryService, StoreCategoryService>();
+builder.Services.AddHostedService<BalanceUpdateService>();
 
-
+builder.Services.AddScoped<ISavingBookService, SavingBookService>();
 builder.Services.AddScoped<RedisCacheService>();
 builder.Services.AddScoped<IFileUploadClient, FileUploadClient>();
+/*builder.Services.AddScoped<ISavingRegulationService, SavingRegulationService>();*/
+builder.Services.AddScoped<ISavingBookService, SavingBookService>();
+
 
 #endregion
 
 
 
-builder.Services.ConfigureMongoDbIdentity<ApplicationUser, ApplicationRole, Guid>(mongoDbConfig)
+builder.Services.ConfigureMongoDbIdentity<ApplicationUser, ApplicationRole, ObjectId>(mongoDbConfig)
     .AddUserManager<UserManager<ApplicationUser>>()
     .AddSignInManager<SignInManager<ApplicationUser>>()
     .AddRoleManager<RoleManager<ApplicationRole>>()
@@ -86,24 +97,50 @@ builder.Services.AddAuthentication(x =>
         ValidAudience = configurator["JWT:ValidAudience"],
         ValidIssuer = configurator["JWT:ValidIssuer"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configurator["JWT:Secret"])),
-        ClockSkew = TimeSpan.Zero
+        /*ClockSkew = TimeSpan.Zero*/
     };
 }).AddIdentityCookies();
 
 #endregion
 
-
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    // Thêm Bearer token vào header
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey
+    });
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            new string[] { }
+        }
+    });
+});
 
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    app.MapSwagger().RequireAuthorization();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -115,8 +152,9 @@ app.UseCors(opts =>
         .AllowAnyMethod();
 });
 
+app.UseMiddleware<GlobalMiddleware>();
 app.UseHttpsRedirection();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();

@@ -4,8 +4,8 @@ using System.Text;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Bson;
 using SavingsBook.Application.Contracts.Authentication;
-using SavingsBook.Infrastructure.Authentication;
 using JwtRegisteredClaimNames = Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames;
 
 namespace SavingsBook.HostApi.Controllers
@@ -38,15 +38,15 @@ namespace SavingsBook.HostApi.Controllers
             {
                 return StatusCode(400, new { message = "Email already in use" });
             }
-            // user = _userManager.Users.SingleOrDefault(x => x.IdCardNumber == input.IdCardNumber);
-            await Task.FromResult(user);
-            if (user != null)
-            {
-                return StatusCode(400, new { message = "ID Card Number already in use" });
-            }
+
             user = new ApplicationUser
             {
-                Email = input.Email, UserName = input.Username, FullName = "", Address = "", IdCardNumber = "", ConcurrencyStamp = Guid.NewGuid().ToString()
+                Id = ObjectId.GenerateNewId(),
+                Email = input.Email,
+                UserName = input.Username,
+                ConcurrencyStamp = Guid.NewGuid().ToString(),
+                IsDeleted = false,
+                IsActive = true
             };
             var createUserResult = await _userManager.CreateAsync(user, input.Password);
             if (!createUserResult.Succeeded)
@@ -54,16 +54,25 @@ namespace SavingsBook.HostApi.Controllers
                 return StatusCode(400,
                     new { message = $"Create user failed, {createUserResult.Errors?.First()?.Description}" });
             }
+            var users = _userManager.Users.ToList();
+            IdentityResult addUserToRoleResult;
+            if (users == null || users.Count == 0)
+            {
+                addUserToRoleResult = await _userManager.AddToRoleAsync(user, "Admin");
+            }
+            else
+            {
+                addUserToRoleResult = await _userManager.AddToRoleAsync(user, "User");
+            }
 
-            var addUserToRoleResult = await _userManager.AddToRoleAsync(user, "User");
-            if (!createUserResult.Succeeded)
+            if (!addUserToRoleResult.Succeeded)
             {
                 await _userManager.DeleteAsync(user);
                 return StatusCode(400,
                     new { message = $"Add role to user failed, {addUserToRoleResult.Errors?.First()?.Description}" });
             }
 
-            return StatusCode(200, new { message = "Create account successfully" });
+            return StatusCode(200, new { message = "Create user successfully" });
         }
 
         [HttpPost("/api/auth/login")]
@@ -84,6 +93,27 @@ namespace SavingsBook.HostApi.Controllers
             return await GetJwtTokenAsync(user);
         }
 
+        [HttpGet("testclaims")]
+        public void GetTokenData(string token)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jsonToken = handler.ReadToken(token) as JwtSecurityToken;
+
+            if (jsonToken != null)
+            {
+                var userName = jsonToken?.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+                var userId = jsonToken?.Claims.FirstOrDefault(c => c.Type == "Id")?.Value;
+                var roles = jsonToken?.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
+
+                // Now you can use the extracted data (e.g., userName, userId, roles)
+                Console.WriteLine($"Username: {userName}, UserId: {userId}, Roles: {string.Join(", ", roles)}");
+            }
+            else
+            {
+                Console.WriteLine("Invalid token.");
+            }
+        }
+
         #region Private method
 
         private async Task<AuthenticationResponseDto> GetJwtTokenAsync(ApplicationUser user)
@@ -91,7 +121,8 @@ namespace SavingsBook.HostApi.Controllers
             var authClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, user.UserName!),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim("Id", user.Id.ToString())
             };
             var roles = await _userManager.GetRolesAsync(user);
             authClaims.AddRange(roles.Select(n => new Claim(ClaimTypes.Role, n)));
@@ -119,6 +150,14 @@ namespace SavingsBook.HostApi.Controllers
                 signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
             );
             return token;
+        }
+
+        [HttpPost("/api/auth/logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await _signInManager.SignOutAsync();
+
+            return Ok(new { message = "Logged out successfully" });
         }
 
         #endregion

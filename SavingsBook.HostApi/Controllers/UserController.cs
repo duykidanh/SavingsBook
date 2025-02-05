@@ -1,7 +1,7 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
 using SavingsBook.Application.Contracts.Authentication;
-using SavingsBook.Infrastructure.Authentication;
 
 namespace SavingsBook.HostApi.Controllers;
 
@@ -32,21 +32,19 @@ public class UserController : ControllerBase
     public async  Task<IActionResult> GetUsers()
     {
         var users = _userManager.Users.ToList();
-
-        await Task.FromResult(users);
         if (users == null)
         {
             return StatusCode(400, new { message = "Users not found." });
         }
 
         var listUserRoles = new List<object>();
-        foreach (var user in users)
+/*        foreach (var user in users)
         {
             var roles = await _userManager.GetRolesAsync(user);
 
             listUserRoles.Add(new { user = user, roles = roles });
-        }
-        return StatusCode(200, listUserRoles);
+        }*/
+        return StatusCode(200, users);
     }
 
     [HttpPost("api/add-user")]
@@ -57,15 +55,15 @@ public class UserController : ControllerBase
         {
             return StatusCode(400, new { message = "Email already in use" });
         }
-        // user = _userManager.Users.SingleOrDefault(x => x.IdCardNumber == input.IdCardNumber);
-        // await Task.FromResult(user);
-        // if (user != null)
-        // {
-        //     return StatusCode(400, new { message = "ID Card Number already in use" });
-        // }
+
         user = new ApplicationUser
         {
-            Email = input.Email, UserName = input.Username, ConcurrencyStamp = Guid.NewGuid().ToString()
+            Id = ObjectId.GenerateNewId(),
+            Email = input.Email, 
+            UserName = input.Username, 
+            ConcurrencyStamp = Guid.NewGuid().ToString(),
+            IsDeleted = false,
+            IsActive = true
         };
         var createUserResult = await _userManager.CreateAsync(user, input.Password);
         if (!createUserResult.Succeeded)
@@ -95,9 +93,6 @@ public class UserController : ControllerBase
         }
 
         user.Email = input.Email ?? user.Email;
-        user.FullName = input.FullName ?? user.FullName;
-        user.Address = input.Address ?? user.Address;
-        user.IdCardNumber = input.IdCardNumber ?? user.IdCardNumber;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)

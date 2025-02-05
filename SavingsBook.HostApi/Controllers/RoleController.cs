@@ -1,6 +1,7 @@
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using SavingsBook.Infrastructure.Authentication;
+using MongoDB.Bson;
+using SavingsBook.Application.Contracts.Authentication;
 
 namespace SavingsBook.HostApi.Controllers;
 
@@ -15,20 +16,22 @@ public class RoleController: ControllerBase
     {
         _roleManager = roleManager;
     }
-    [HttpGet("api/getroles")]
+    [HttpGet]
     public async Task<IActionResult> GetRoles()
     {
+
         var roles = _roleManager.Roles.ToList();
-        await Task.FromResult(roles);
-        if (roles == null)
+
+
+        if (roles == null || !roles.Any())
         {
             return StatusCode(400, new { message = "Cannot get list roles" });
         }
 
-        return StatusCode(200, roles);
+        return StatusCode(200, new { roles });
     }
 
-    [HttpPost("/api/role/create")]
+    [HttpPost]
     public async Task<IActionResult> CreateRole(string roleName)
     {
         var role = await _roleManager.FindByNameAsync(roleName);
@@ -37,31 +40,46 @@ public class RoleController: ControllerBase
             return StatusCode(400, new { message = "Role already exists" });
         }
 
-        role = new ApplicationRole { Name = roleName, NormalizedName = roleName.ToUpper() };
-        var addToRolesList = await _roleManager.CreateAsync(role);
-        if (!addToRolesList.Succeeded)
+        role = new ApplicationRole
         {
-            return StatusCode(400, new {message = "Cannot create role" });
+            Id = ObjectId.GenerateNewId(),
+            Name = roleName,
+            NormalizedName = roleName.ToUpper(),
+            ConcurrencyStamp = Guid.NewGuid().ToString(),
+            IsDeleted = false,
+            IsActive = true
+        };
+
+        var result = await _roleManager.CreateAsync(role);
+        if (!result.Succeeded)
+        {
+            return StatusCode(400, new { message = "Cannot create role", errors = result.Errors });
         }
-        return StatusCode(200, new {message = "Create role Successfully" });
+
+        return StatusCode(200, new { message = "Role created successfully", role });
     }
 
     [HttpPost("/api/role/update")]
-    public async Task<IActionResult> UpdateRole(string id,string newName)
+    public async Task<IActionResult> UpdateRole(string id, string newName, ObjectId currentUserId)
     {
         var role = await _roleManager.FindByIdAsync(id);
         if (role == null)
         {
             return StatusCode(400, new { message = "Role does not exist" });
         }
+
         role.Name = newName;
         role.NormalizedName = newName.ToUpper();
-        var updateRoleName = await _roleManager.UpdateAsync(role);
-        if (!updateRoleName.Succeeded)
+        role.LastModifierId = currentUserId;
+        role.LastModificationTime = DateTime.UtcNow;
+
+        var result = await _roleManager.UpdateAsync(role);
+        if (!result.Succeeded)
         {
-            return StatusCode(400, new {message = "Cannot update role" });
+            return StatusCode(400, new { message = "Cannot update role", errors = result.Errors });
         }
-        return StatusCode(200, new {message = "Update role Successfully" });
+
+        return StatusCode(200, new { message = "Update role successfully" });
     }
 
     [HttpDelete("/api/role/delete")]

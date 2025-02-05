@@ -3,5 +3,5 @@
 public class PageResultDto<T>
 {
     public long TotalCount { get; set; }
-    public IReadOnlyList<T>? _items;
+    public IReadOnlyList<T>? Items { get; set; }
 }

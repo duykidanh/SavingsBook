@@ -17,4 +17,9 @@
       <ProjectReference Include="..\SavingsBook.Domain\SavingsBook.Domain.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Folder Include="Authentication\" />
+      <Folder Include="RolesConfig\" />
+    </ItemGroup>
+
 </Project>

@@ -12,7 +12,7 @@ namespace SavingsBook.Domain.Common
         Task<T> InsertAsync(T entity);
         Task InsertManyAsync(IEnumerable<T> entities);
         Task<T> UpdateAsync(T entity);
-        Task DeleteAsync(Guid id);
+        Task<bool> DeleteAsync(Guid id);
         Task DeleteManyAsync(IEnumerable<T> entities);
         Task<IQueryable<T>> GetQueryableAsync();
     }

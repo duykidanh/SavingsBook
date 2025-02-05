@@ -42,8 +42,8 @@ public static class Extension
     {
         services
             .AddMongo();
-            // .AddMongoRepository<Store>("Store")
-            // .AddMongoRepository<StoreCategory>("StoreCategory");
+/*            .AddMongoRepository<Regulation>("SavingRegulation")
+            .AddMongoRepository<SavingBook>("SavingBook");*/
         
         
         
