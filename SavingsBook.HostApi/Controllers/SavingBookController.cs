@@ -10,6 +10,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
 ﻿using Microsoft.AspNetCore.Http.HttpResults;
+using SavingsBook.Application.Contracts.Payment;
 
 namespace SavingsBook.HostApi.Controllers;
 
@@ -19,11 +20,13 @@ public class SavingBookController : ControllerBase
 {
     private readonly IMongoCollection<SavingBook> _savingBooks;
     private readonly IMongoCollection<Regulation> _regulations;
+    private readonly IMongoCollection<TransactionTicket> _transactionTicket;
 
     public SavingBookController(IMongoDatabase database)
     {
         _savingBooks = database.GetCollection<SavingBook>("SavingBooks");
         _regulations = database.GetCollection<Regulation>("Regulations");
+        _transactionTicket = database.GetCollection<TransactionTicket>("TransactionTickets");
     }
 
     [HttpGet("tokens")]
@@ -77,6 +80,7 @@ public class SavingBookController : ControllerBase
             CreationTime = DateTime.UtcNow,
             Balance = input.NewPaymentAmount,
             Address = input.Address,
+            IdCardNumber = input.IdCardNumber,
             Regulations = new List<SavingBook.Regulation>(),
             IsActive = true,
             Status = "active"
@@ -108,6 +112,16 @@ public class SavingBookController : ControllerBase
 
         return Ok(savingBooks);
 
+    }
+
+    [HttpGet("{savingBookId}/tickets")]
+    public async Task<IActionResult> GetSavingBookTickets(string savingBookId)
+    {
+        var bookId = ObjectId.Parse(savingBookId);
+        
+        var transactionTickets = _transactionTicket.Find(m => m.SavingBookId == bookId).ToList();
+
+        return Ok(transactionTickets);
     }
 
     public async Task UpdateBalancesAsync()

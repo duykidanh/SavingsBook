@@ -11,25 +11,15 @@ namespace SavingsBook.Application.Contracts.Payment;
 
 public class TransactionTicket : AuditedEntityDto<ObjectId>
 {
-    public ObjectId AccountId { get; set; }
-    public double Balance { get; set; }
-    public string IdCardNumber { get; set; }
-    public Address Address { get; set; }
-    public string Status { get; set; }
-    public DateTime NextScheduleMonth { get; set; }
-    public List<SavingRegulation> Regulations { get; set; } = [];
-
-    public class SavingRegulation
-    {
-        public ObjectId RegulationIdRef { get; set; }
-        public DateTime ApplyDate { get; set; }
-        public string Name { get; set; }
-        public int TermInMonth { get; set; }
-        public double InterestRate { get; set; }
-        public double MinWithDrawValue { get; set; }
-        public int MinWithDrawDay { get; set; }
-        public DateTime ExpiredDate { get; set; }
-        public DateTime UpdatedBalanceDate { get; set; }
-    }
-
+    public ObjectId SavingBookId { get; set; }
+    public DateTime TransactionDate { get; set; }
+    public double PaymentAmount { get; set; }
+    public string PaymentType { get; set; } = string.Empty;
+    public int TermInMonth { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public double InterestRate { get; set; }
+    public string Status {  get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string PaymentLink { get; set; } = string.Empty;
+    public string PaymentId { get; set; } = string.Empty;
 }
